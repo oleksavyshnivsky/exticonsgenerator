@@ -1,0 +1,12 @@
+.DS_Store
+@eaDir/
+_mod/
+config/config.php
+pconsole/*.bat
+uploads/**
+vendor/**
+test.txt
+!**/.keep
+public/.htaccess
+composer.lock
+midwork-push.bat
