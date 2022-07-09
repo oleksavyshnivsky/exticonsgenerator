@@ -11,37 +11,50 @@ class home extends Controller {
 			// Завантажене зображення
 			$image = $_FILES['image']['tmp_name'];
 			$name = trim(filter_input(INPUT_POST, 'name'));
-		
-			resize(16, $folder.$name.'16', $image);
-			resize(32, $folder.$name.'32', $image);
-			resize(48, $folder.$name.'48', $image);
-			resize(128, $folder.$name.'128', $image);
 
-			$filenames = [
-				$folder.$name.'16.png',
-				$folder.$name.'32.png',
-				$folder.$name.'48.png',
-				$folder.$name.'128.png'
-			];
+			if(!file_exists($_FILES['image']['tmp_name']) || !is_uploaded_file($_FILES['image']['tmp_name'])) {
+			    error('Файл не завантажений');
+			} elseif (!$name) {
+			    error('Назва не задана');
+			} else {
+				$SIZES = [16, 32, 48, 128];
+				foreach($SIZES as $i => $size) {
+					$IMGFILES[] = resize($size, $folder.$name.$size, $image);
+					$IMGFILENAMES[] = $name.$size.'.png';
+				}
 
-			// Створення архіву
-			$zipfile = $folder.'icons.zip';
-			$zip = new ZipArchive();
-			if (!$zip->open($zipfile, ZIPARCHIVE::CREATE)) exit(_('Error while creating ZIP-archive'));
+				// Створення архіву
+				// $zipfile = $folder.'icons.zip';
+				$zipfilename_tech = tempnam(sys_get_temp_dir(), "FOO");
+				$zipfilename_human = $name.'.zip';
 
-			// Додавання дампу у zip-архів
-			foreach ($filenames as $filename) {
-				$zip->addFile($filename, basename($filename));
+
+				$zip = new ZipArchive();
+				if (!$zip->open($zipfilename_tech, ZIPARCHIVE::OVERWRITE)) exit(_('Error while creating ZIP-archive'));
+
+				// Додавання зображень у zip-архів
+				foreach ($IMGFILENAMES as $i => $filename) {
+					// $zip->addFile($filename, basename($filename));
+					$zip->addFromString(basename($filename), $IMGFILES[$i]);
+				}
+
+				// Закриття архіву
+				$zip->close();
+
+				$finfo = finfo_open(FILEINFO_MIME_TYPE);
+				$type = finfo_file($finfo, $zipfilename_tech);
+				header('Content-Type: '.$type.'; charset=utf-8');
+				header('Content-Disposition: inline; filename="'.$zipfilename_human.'"');
+				echo file_get_contents($zipfilename_tech);
+				exit;
 			}
 
-			// Закриття архіву
-			$zip->close();
 
-			$this->success = true;
+			// $this->success = true;
 		}
 
 		$this->view('home', [
-			'filenames'	=>	$filenames,
+			// 'filenames'	=>	$filenames,
 			'zipfile'	=>	$zipfile
 		]);
 	}
